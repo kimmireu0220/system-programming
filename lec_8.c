@@ -25,8 +25,6 @@ int main() {
     printf("hi\n");
     return 0;
 }
-// $ gcc -o ex0 ex0.c
-// $ ex0
 
 /*
 2) 명령줄 인자 1개를 받는 프로그램
@@ -38,8 +36,6 @@ int main(int argc, char *argv[]) {
     printf("%s\n", argv[0]);
     return 0;
 }
-// $ gcc -o ex1 ex1.c
-// $ ex1
 
 /*
 3) 명령줄 인자 2개를 받는 프로그램
@@ -52,7 +48,6 @@ int main(int argc, char *argv[]) {
     printf("%s\n", argv[1]);
     return 0;
 }
-// 인자 없이 실행 시 segmentation fault 발생
 
 /*
 4) 명령줄 인자 3개를 받는 프로그램
@@ -91,8 +86,6 @@ int main(int argc, char *argv[]) {
     printf("\n");
     return 0;
 }
-// $ echo hi > f1 → shell이 처리
-// $ myecho hi > f2 → 프로그램이 처리
 
 /*
 7) mycat - cat과 유사한 기능
@@ -115,15 +108,6 @@ int main(int argc, char *argv[]) {
     close(x);
     return 0;
 }
-
-/*
-7-1) perror를 사용하여 cat 명령어와 유사한 에러 메시지 출력
-*/
-// 변경 전: perror("error in open");
-// 변경 후:
-// char msg[256];
-// snprintf(msg, sizeof(msg), "mycat: %s", argv[1]);
-// perror(msg);
 
 /*
 7-2) 환경변수 인식하는 myecho
@@ -188,9 +172,64 @@ int main(int argc, char *argv[]) {
 */
 
 /*
-11~15) mycat 기능 확장: 다중 파일, -o, -x, -p, -d 옵션 구현
+11) 두 개의 파일을 출력하는 mycat
 */
-// ex) mycat -o f1 f2 → f1 내용을 f2로 복사
-// ex) mycat -x f1 → f1을 16진수로 출력
-// ex) mycat -p /etc/passwd → 사용자 정보 포맷팅 출력
-// ex) mycat -d dir → 디렉토리 내 파일명 출력
+// $ mycat f1 f2
+// → f1, f2의 내용을 순서대로 출력
+
+/*
+12) mycat이 임의 개수의 파일을 출력하도록 수정
+*/
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+int main(int argc, char *argv[]) {
+    char buf[20];
+    int y;
+    for (int i = 1; i < argc; i++) {
+        int x = open(argv[i], O_RDONLY);
+        if (x == -1) { perror(argv[i]); continue; }
+        while ((y = read(x, buf, 20)) > 0) write(1, buf, y);
+        close(x);
+    }
+    return 0;
+}
+
+/*
+13) mycp - 파일 복사
+*/
+int docopy(const char *src, const char *dst) {
+    int x1 = open(src, O_RDONLY);
+    int x2 = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 00777);
+    char buf[1024];
+    int y;
+    while ((y = read(x1, buf, 1024)) > 0) write(x2, buf, y);
+    close(x1); close(x2);
+    return 0;
+}
+
+/*
+14) myxxd - 파일을 16진수로 출력
+*/
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+int main(int argc, char *argv[]) {
+    int x = open(argv[1], O_RDONLY);
+    unsigned char buf[1];
+    while (read(x, buf, 1)) {
+        printf("%02x ", buf[0]);
+    }
+    printf("\n");
+    close(x);
+    return 0;
+}
+
+/*
+15) mycat 다양한 옵션 처리 (-o, -x, -p, -d)
+*/
+// -o: 파일 복사 → mycat -o f1 f2
+// -x: 16진수 출력 → mycat -x f1
+// -p: /etc/passwd 파싱 출력 → fopen(), fgets(), strtok() 활용
+// -d: 디렉토리 내부 파일 출력 → opendir(), readdir() 사용
+// 참고: man 5 passwd, man 3 opendir, man 3 readdir
